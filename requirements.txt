@@ -1,0 +1,10 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+scikit-image
+seaborn
+nvgpu
+git+https://github.com/tueimage/gryds
+git+https://github.com/albumentations-team/albumentations
+imgaug
