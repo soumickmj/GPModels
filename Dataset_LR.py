@@ -80,8 +80,10 @@ batch_test = 2         #for Testing
 
 
 #Main path + specific path to pickle files, our input data
-training_data_seg = pickle.load(open(main_path+'/dataset/training_data_{}.pickle'.format(orient), 'rb'))
-labels_class = pickle.load(open(main_path+'/dataset/labels_{}.pickle'.format(orient), 'rb'))
+training_data_seg = pickle.load(
+    open(f'{main_path}/dataset/training_data_{orient}.pickle', 'rb'))
+labels_class = pickle.load(
+    open(f'{main_path}/dataset/labels_{orient}.pickle', 'rb'))
 
 
 
@@ -133,7 +135,6 @@ torch.cuda.empty_cache()
 
 #Create lists to store data
 Xt = []
-yt = []
 features = None
 labels = None
 label = []
@@ -145,11 +146,7 @@ for features,masks in training_data_seg:
   Xt.append(features)
   mt.append(masks)
 
-for labels in labels_class:
-  yt.append(labels)
-
-
-
+yt = list(labels_class)
 """# Check the whole dataset for Healthy brain images:
 ***Crucial in 2D models***
 """
@@ -306,6 +303,7 @@ epochs = epochs
 
 
 logs,losses = find_lr(train_gen, optimizer, model, criterion, device, batch, aug, num_class)   #plt.plot(logs[10:-5],losses[10:-5])
-plt.savefig(main_path+ f'/Results/find_lr_{m_name[1]}_{orient}_{batch}b_{aug}a.png')
+plt.savefig(
+    f'{main_path}/Results/find_lr_{m_name[1]}_{orient}_{batch}b_{aug}a.png')
 plt.show()
 
