@@ -65,20 +65,16 @@ class GP_UNet_PM(nn.Module):
         self.downS = nn.ModuleList()
         self.downS2 = nn.ModuleList()
         for i in range(depth):
-            if in_channels==1 or in_channels==4:
+            if in_channels in [1, 4]:
                 self.down_path.append(UNetConvBlock(prev_channels, 2**(wf+i),
                                                 padding, batch_norm))
                 in_channels = 0
-                self.downS.append(SingleConvBlock(2**(wf+i), int(2**(wf+i)/4), batch_norm=False))
-                self.downS2.append(SingleConvBlock(2**(wf+i), int(2**(wf+i)/2), batch_norm=False))
-                
             else:
                 prev_channels = 2**(wf+i)
                 self.down_path.append(UNetConvBlock(prev_channels, 2**(wf+i),
                                                 padding, batch_norm))
-                self.downS.append(SingleConvBlock(2**(wf+i), int(2**(wf+i)/4), batch_norm=False))
-                self.downS2.append(SingleConvBlock(2**(wf+i), int(2**(wf+i)/2), batch_norm=False))
-                
+            self.downS.append(SingleConvBlock(2**(wf+i), int(2**(wf+i)/4), batch_norm=False))
+            self.downS2.append(SingleConvBlock(2**(wf+i), int(2**(wf+i)/2), batch_norm=False))
 
         self.up_path = nn.ModuleList()
         self.upS2 = nn.ModuleList()
@@ -133,10 +129,8 @@ class GP_UNet_PM(nn.Module):
 class UNetConvBlock(nn.Module):
     def __init__(self, in_size, out_size, padding, batch_norm):
         super(UNetConvBlock, self).__init__()
-        block = []
+        block = [nn.Conv2d(in_size, out_size, kernel_size=3, padding=int(padding))]
 
-        block.append(nn.Conv2d(in_size, out_size, kernel_size=3,
-                               padding=int(padding)))
         block.append(nn.ReLU())
         if batch_norm:
             block.append(nn.BatchNorm2d(out_size))
@@ -150,8 +144,7 @@ class UNetConvBlock(nn.Module):
         self.block = nn.Sequential(*block)
 
     def forward(self, x):
-        out = self.block(x)
-        return out
+        return self.block(x)
 
 
 class UNetUpBlock(nn.Module):
@@ -172,17 +165,15 @@ class UNetUpBlock(nn.Module):
         self.conv_block = UNetConvBlock(in_size, out_size, padding, batch_norm)
 
     def forward(self, downS, downS2, upS2, x, bridge):
-        if self.up_mode == 'upconv': #  'upconv'
+        if self.up_mode in ['upconv', 'bilinear']: #  'upconv'
             up = self.up(x)
-        elif self.up_mode == 'bilinear':
-            up = self.up(x)
-        elif 'inc' in  self.up_mode:
+        elif 'inc' in self.up_mode:
             x = cF._sinc_interpolate(x, size=[int(x.shape[2]*2), int(x.shape[3]*2)]) #'sinc' ###sth wrong
             up = self.up(x)
 
         # bridge = self.center_crop(bridge, up.shape[2:]) #sending shape ignoring 2 digit, so target size start with 0,1,2
         up = F.interpolate(up, size=bridge.shape[2:], mode='bilinear')
-        up = upS2(up) 
+        up = upS2(up)
         bridge = PM(downS, downS2, bridge, PM_mode="bridge", levels=[1, 2, 3, 6, 16])
         out = torch.cat([up, bridge[0],bridge[1],bridge[2],bridge[3],bridge[4]], 1)  #bridge is the x from left side at each loop down conv
         out = self.conv_block(out)
@@ -194,9 +185,8 @@ class UNetUpBlock(nn.Module):
 class SingleConvBlock(nn.Module):
     def __init__(self, in_size, out_size, batch_norm):
         super(SingleConvBlock, self).__init__()
-        blockS = []
+        blockS = [nn.Conv2d(in_size, out_size, kernel_size=1)]
 
-        blockS.append(nn.Conv2d(in_size, out_size, kernel_size=1))
         blockS.append(nn.ReLU())
         if batch_norm:
             blockS.append(nn.BatchNorm2d(out_size))
@@ -204,8 +194,7 @@ class SingleConvBlock(nn.Module):
         self.blockS = nn.Sequential(*blockS)
 
     def forward(self, x):
-        outS = self.blockS(x)
-        return outS
+        return self.blockS(x)
 
 
 
@@ -223,11 +212,7 @@ def PM(downS, downS2, x, PM_mode, levels):
 
     for i in range(len(levels)): #loop 5 times for 5 levels
         #1x1 conv to reduce num of channels N/2 for 2x2 bin and N/4 for the rest 4
-        if levels[i] == 2:
-            S = downS2(pool[i])
-        else:
-            S = downS(pool[i])
-
+        S = downS2(pool[i]) if levels[i] == 2 else downS(pool[i])
         #Upsampling"
         if PM_mode == "down":
             S = F.interpolate(S, size=(int(x.shape[2]/2), int(x.shape[3]/2)), mode='bilinear')
@@ -237,10 +222,7 @@ def PM(downS, downS2, x, PM_mode, levels):
         Singleconv.append(S)
 
 
-    outSPP = Singleconv
-
-
-    return outSPP
+    return Singleconv
 
 
 #to run it here from this script, uncomment the following

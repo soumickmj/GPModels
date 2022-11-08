@@ -115,10 +115,8 @@ class GP_UNet(nn.Module):
 class UNetConvBlock(nn.Module):
     def __init__(self, in_size, out_size, padding, batch_norm, Relu):
         super(UNetConvBlock, self).__init__()
-        block = []
+        block = [nn.Conv2d(in_size, out_size, kernel_size=3, padding=int(padding))]
 
-        block.append(nn.Conv2d(in_size, out_size, kernel_size=3,
-                               padding=int(padding)))
         if Relu == "Relu":
             block.append(nn.ReLU())
         else:
@@ -129,7 +127,7 @@ class UNetConvBlock(nn.Module):
 
         block.append(nn.Conv2d(out_size, out_size, kernel_size=3,
                                padding=int(padding)))
-        
+
         if Relu == "Relu":
             block.append(nn.ReLU())
         else:
@@ -141,8 +139,7 @@ class UNetConvBlock(nn.Module):
         self.block = nn.Sequential(*block)
 
     def forward(self, x):
-        out = self.block(x)
-        return out
+        return self.block(x)
 
 
 class UNetUpBlock(nn.Module):
@@ -164,9 +161,7 @@ class UNetUpBlock(nn.Module):
         self.conv_block = UNetConvBlock(in_size, out_size, padding, batch_norm, Relu)
 
     def forward(self, x, bridge):
-        if self.up_mode == 'upconv': #  'upconv'
-            up = self.up(x)
-        elif self.up_mode == 'bilinear':
+        if self.up_mode in ['upconv', 'bilinear']: #  'upconv'
             up = self.up(x)
         elif 'inc' in self.up_mode: 
             x = cF._sinc_interpolate(x, size=[int(x.shape[2]*2), int(x.shape[3]*2)]) #'sinc' ###sth wrong

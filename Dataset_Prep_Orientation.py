@@ -46,10 +46,10 @@ orient = "All"       #All, Sag, Cor, Axi
 
 
 # source_root = main_path + f'/{orient}matfiles'
-source_root = main_path + f'/MATs'
-destin_root = main_path + f'/Processed'
-label_path = main_path + f'/labels_{orient}.pickle'
-Train_path = main_path + f'/training_data_{orient}.pickle'
+source_root = f'{main_path}/MATs'
+destin_root = f'{main_path}/Processed'
+label_path = f'{main_path}/labels_{orient}.pickle'
+Train_path = f'{main_path}/training_data_{orient}.pickle'
 
 ###################################################################################################
 
@@ -77,7 +77,7 @@ for file in tqdm(files):
             # tumorBorder = f['cjdata']['tumorBorder'][0]  #not used
             mask = f['cjdata']['tumorMask']
             #pid = f['cjdata']['PID']                    #Patient ID      
-                  
+
             # # Creating training data labels for classification
             labels.append(int(label))
             img = np.array(img, dtype=np.float32)
@@ -104,22 +104,14 @@ label_array = np.array(labels, dtype=np.int64)
 print("shape of label array is : ", label_array.shape)                #Shape must be (3064,) for all/ (1025,) for sag ...
 
 
-pickle_out = open(label_path, "wb")
-pickle.dump(label_array, pickle_out)
-pickle_out.close()
+with open(label_path, "wb") as pickle_out:
+      pickle.dump(label_array, pickle_out)
+###2- Creating training_data as pickle file for images and their masks:
+print(f"Shape of training data is : {str(np.shape(training_data_seg))}")
 
 
-
-###2- Creating training_data as pickle file for images and their masks:         
-print("Shape of training data is : " + str(np.shape(training_data_seg)))            #Shape must be:  (3064, 2, 512, 512) for all/ (1025, 2, 512, 512) for sag ...
-
-
-pickle_out = open(Train_path, "wb")
-pickle.dump(np.array(training_data_seg), pickle_out)
-pickle_out.close()
-
-
-
+with open(Train_path, "wb") as pickle_out:
+      pickle.dump(np.array(training_data_seg), pickle_out)
 print('Done')
 
 

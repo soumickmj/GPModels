@@ -16,14 +16,12 @@ def find_lr(train_gen, optimizer, model, criterion, device, batch, aug, num_clas
     optimizer.param_groups[0]['lr'] = lr
     avg_loss = 0.
     best_loss = 0.
-    batch_num = 0
     losses = []
     log_lrs = []
-    for data in train_gen:
-        batch_num += 1
+    for batch_num, data in enumerate(train_gen, start=1):
         #As before, get the loss for this mini-batch of inputs/outputs
         labels, inputs = data
-        labels, inputs = labels, inputs 
+        labels, inputs = labels, inputs
         # set label as cuda if device is cuda
         labels, inputs  = labels.to(device), inputs.to(device)
         optimizer.zero_grad()

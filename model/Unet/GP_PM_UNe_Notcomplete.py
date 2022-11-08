@@ -13,21 +13,18 @@ import math
 
 
 def double_conv(in_c, out_c):
-    conv = nn.Sequential(
+    return nn.Sequential(
         nn.Conv2d(in_c, out_c, kernel_size=3),
         nn.ReLU(inplace=True),
         nn.Conv2d(out_c, out_c, kernel_size=3),
-        nn.ReLU(inplace=True)
+        nn.ReLU(inplace=True),
     )
-    return conv
 
 # Single conv like florains
 def single_conv(in_c, out_c):
-    conv = nn.Sequential(
-        nn.Conv2d(in_c, out_c, kernel_size=3),
-        nn.ReLU(inplace=True)
-    )
-    return conv    
+    return nn.Sequential(
+        nn.Conv2d(in_c, out_c, kernel_size=3), nn.ReLU(inplace=True)
+    )    
 
 #Crop func of down conv out before concatination to match TranseConve out size
 def crop_img(tensor, target_tensor):         #(tensor: out of downconv, target_tensor: out of TransConve (smaller))

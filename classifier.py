@@ -94,13 +94,12 @@ class Classifier(LightningModule):
     def mask_merge(self, mask, pred=None):
         if self.hparams.MaskMergeMode == "sum":
             return torch.sum(mask, dim=1, keepdims=True)
-        else:
-            selected_mask = []
-            pred_hat = torch.argmax(pred, dim=1)
-            for i in range(len(mask)):
-                mask = mask.float() #added this to solve utils line 52 unsupported dtype when using predselect mode
-                selected_mask.append(mask[i, pred_hat[i], ...])
-            return torch.stack(selected_mask).unsqueeze(1)
+        selected_mask = []
+        pred_hat = torch.argmax(pred, dim=1)
+        for i in range(len(mask)):
+            mask = mask.float() #added this to solve utils line 52 unsupported dtype when using predselect mode
+            selected_mask.append(mask[i, pred_hat[i], ...])
+        return torch.stack(selected_mask).unsqueeze(1)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -159,16 +158,28 @@ class Classifier(LightningModule):
         return torch.argmax(pred, dim=1), pred_mask
 
     def prepare_dataset_splits(self):
-        data_seg = pickle.load(open(self.hparams.main_path+'/dataset/training_data_{}.pickle'.format(self.hparams.orient), 'rb'))
+        data_seg = pickle.load(
+            open(
+                f'{self.hparams.main_path}/dataset/training_data_{self.hparams.orient}.pickle',
+                'rb',
+            )
+        )
+
         X = data_seg[:,0,...]
         m = data_seg[:,1,...]
-        y = pickle.load(open(self.hparams.main_path+'/dataset/labels_{}.pickle'.format(self.hparams.orient), 'rb'))
+        y = pickle.load(
+            open(
+                f'{self.hparams.main_path}/dataset/labels_{self.hparams.orient}.pickle',
+                'rb',
+            )
+        )
+
 
         if y.min() == 1: y-=1 #The initial class should be 0, not 1
         self.classIDs = np.unique(y)
 
         ind_trainval, ind_test  = list(StratifiedShuffleSplit(n_splits=1, test_size=self.hparams.test_percent, random_state=13).split(X, y))[0]
-        self.X_test = X[ind_test] 
+        self.X_test = X[ind_test]
         self.y_test = y[ind_test]
         self.m_test = m[ind_test]
         X = X[ind_trainval]
@@ -212,7 +223,7 @@ class Classifier(LightningModule):
     def validation_epoch_end(self, outputs: List[Any]) -> None:
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).median()
         self.log('val_loss', avg_loss)
-        n_correct = sum([x['n_correct'] for x in outputs])
+        n_correct = sum(x['n_correct'] for x in outputs)
         val_acc = n_correct / (len(self.X_val) * 1.0)
         self.log('accuracy', val_acc)
         if self.hparams.model_segclassify:
