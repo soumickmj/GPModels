@@ -66,17 +66,16 @@ class UpsamplingBlock(nn.Module):
         self.conv_block = nn.Sequential(*conv_block)
 
     def forward(self, x, out_shape=None):
-        if self.mode == "upconv":
-            if self.post_interp_convtrans:
-                x = self.conv_block(x)
-                if x.shape[2:] != out_shape:
-                    return self.post_conv(self.interpolator(x, out_shape))
-                else:
-                    return x
-            else:
-                return self.conv_block(x)
-        else:
+        if self.mode != "upconv":
             return self.conv_block(self.interpolator(x, out_shape))
+        if not self.post_interp_convtrans:
+            return self.conv_block(x)
+        x = self.conv_block(x)
+        return (
+            self.post_conv(self.interpolator(x, out_shape))
+            if x.shape[2:] != out_shape
+            else x
+        )
 
 class GP_ReconResNet(nn.Module):
     def __init__(self, in_channels=1, n_classes=1, res_blocks=14, starting_nfeatures=64, updown_blocks=2, is_relu_leaky=True, do_batchnorm=False, res_drop_prob=0.2,    #res_drop_prob=0.2
@@ -88,27 +87,18 @@ class GP_ReconResNet(nn.Module):
             sys.exit("ResNet: for implemented for 3D, ReflectionPad3d code is required")
             layers["layer_conv"] = nn.Conv3d
             layers["layer_convtrans"] = nn.ConvTranspose3d
-            if do_batchnorm:
-                layers["layer_norm"] = nn.BatchNorm3d
-            else:
-                layers["layer_norm"] = nn.InstanceNorm3d
+            layers["layer_norm"] = nn.BatchNorm3d if do_batchnorm else nn.InstanceNorm3d
             layers["layer_drop"] = nn.Dropout3d
             layers["layer_pad"] = ReflectionPad3d
             layers["interp_mode"] = 'trilinear'
         else:
             layers["layer_conv"] = nn.Conv2d
             layers["layer_convtrans"] = nn.ConvTranspose2d
-            if do_batchnorm:
-                layers["layer_norm"] = nn.BatchNorm2d
-            else:
-                layers["layer_norm"] = nn.InstanceNorm2d
+            layers["layer_norm"] = nn.BatchNorm2d if do_batchnorm else nn.InstanceNorm2d
             layers["layer_drop"] = nn.Dropout2d
             layers["layer_pad"] = nn.ReflectionPad2d
-            layers["interp_mode"] = 'bilinear'            
-        if is_relu_leaky:
-            layers["act_relu"] = nn.PReLU
-        else:
-            layers["act_relu"] = nn.ReLU
+            layers["interp_mode"] = 'bilinear'
+        layers["act_relu"] = nn.PReLU if is_relu_leaky else nn.ReLU
         globals().update(layers)
 
         self.forwardV = forwardV
@@ -134,9 +124,9 @@ class GP_ReconResNet(nn.Module):
             out_features = in_features*2
 
         # Residual blocks
-        resblocks = []
-        for _ in range(res_blocks):
-            resblocks += [ResidualBlock(in_features, res_drop_prob)]
+        resblocks = [
+            ResidualBlock(in_features, res_drop_prob) for _ in range(res_blocks)
+        ]
 
         # Upsampling
         upsam = []
@@ -251,7 +241,7 @@ class GP_ReconResNet(nn.Module):
         #v5: residual of v4 + individual down blocks with individual up blocks
         outs = [x + self.intialConv(x)]
         shapes = []
-        for i, downblock in enumerate(self.downsam):
+        for downblock in self.downsam:
             shapes.append(outs[-1].shape[2:])
             outs.append(downblock(outs[-1]))
         outs[-1] = outs[-1] + self.resblocks(outs[-1])

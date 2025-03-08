@@ -40,7 +40,7 @@ class TumourDataset(Dataset):
             # nib.save((nib.Nifti1Image(image, None)), main_path + f'/4Ch_experement_nii/BraTS20_Training_b4Trans_Test{idx}_Ch4.nii.gz') 
 
             image_trans = self.transforms(image)
-            
+
             ##save some examples after transformation to check correctness of the operation
             # if self.trans is not None:  #only could occur in training subbset
             # image_numpy = np.transpose(image_trans,(1, 2, 0))
@@ -61,5 +61,5 @@ class TumourDataset(Dataset):
             else:
                 image_trans /= image_trans.max()
                 image = image_trans
-        
+
         return image, mask, label

@@ -57,9 +57,6 @@ class fromTorchIO():
 
 def result_analyser(y_pred, y_true, mask_pred, mask_true, classes, path, image, out_act):
 
-    rotate = False
-    flip = False
-
     os.makedirs(path, exist_ok=True)
     path2 = path + "/nifti/"
     os.makedirs(path2, exist_ok=True)
@@ -73,11 +70,16 @@ def result_analyser(y_pred, y_true, mask_pred, mask_true, classes, path, image, 
 
     with open(os.path.join(path, "results.txt"), "a") as output:
         output.write("\n" + "Classification report : " + "\n" + str(classify_rprt) + "\n")
-        output.write("Jaccard index = " + str(Jindex) + "\n")
-    
+        output.write(f"Jaccard index = {str(Jindex)}" + "\n")
+
     if mask_pred is not None:
         dice_scores = []
         iou_scores = []
+
+        #new adopted multiotsu + offset
+        offset = 0.1
+        rotate = False
+        flip = False
 
         for i in range(len(mask_pred)):
             
@@ -112,7 +114,13 @@ def result_analyser(y_pred, y_true, mask_pred, mask_true, classes, path, image, 
             #raw heatmap
             hm = plt.imshow(mask_pred[i], cmap=plt.cm.RdBu)
             plt.colorbar(hm)
-            plt.savefig(os.path.join(path, str(i)+"_"+str(y_pred[i])+"_"+str(y_true[i])+"_heatmap.png"))
+            plt.savefig(
+                os.path.join(
+                    path,
+                    f"{str(i)}_{str(y_pred[i])}_{str(y_true[i])}_heatmap.png",
+                )
+            )
+
             plt.close()
 
             if out_act == "None":
@@ -120,13 +128,17 @@ def result_analyser(y_pred, y_true, mask_pred, mask_true, classes, path, image, 
                 mask_pred[i][mask_pred[i]<=0] = 0
                 hm = plt.imshow(mask_pred[i], cmap=plt.cm.RdBu)
                 plt.colorbar(hm)
-                plt.savefig(os.path.join(path, str(i)+"_"+str(y_pred[i])+"_"+str(y_true[i])+"sup_heatmap.png"))
+                plt.savefig(
+                    os.path.join(
+                        path,
+                        f"{str(i)}_{str(y_pred[i])}_{str(y_true[i])}sup_heatmap.png",
+                    )
+                )
+
                 plt.close()
 
-            #new adopted multiotsu + offset
-            offset = 0.1
             value = threshold_multiotsu(mask_pred[i], classes=3)[-1]
-            value = max(0.0, value-offset) 
+            value = max(0.0, value-offset)
             m_pred = (mask_pred[i] > value).astype(np.float32)
 
             #older otsu no offset approach
@@ -138,16 +150,22 @@ def result_analyser(y_pred, y_true, mask_pred, mask_true, classes, path, image, 
             iou_scores.append(round(iou, 2))
             mask_diff = create_diff_mask_binary(m_pred, mask_true[i])
 
-            Image.fromarray(mask_diff).save(os.path.join(path, str(i)+"_"+str(y_pred[i])+"_"+str(y_true[i])+"_diff.png"))
-            #############
+            Image.fromarray(mask_diff).save(
+                os.path.join(
+                    path,
+                    f"{str(i)}_{str(y_pred[i])}_{str(y_true[i])}_diff.png",
+                )
+            )
+
+                    #############
 
     else:
         dice_scores = [-1]
         iou_scores = [-1]
 
     with open(os.path.join(path, "results.txt"), "a") as output:
-        output.write("Dice (Mask) = " + str(median(dice_scores)) + "\n")
-        output.write("IoU (Mask) = " + str(median(iou_scores)) + "\n")
+        output.write(f"Dice (Mask) = {str(median(dice_scores))}" + "\n")
+        output.write(f"IoU (Mask) = {str(median(iou_scores))}" + "\n")
 
 def create_diff_mask_binary(predicted, label):
     """

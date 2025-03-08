@@ -42,17 +42,14 @@ class Helper(object):
                 #count how many healthy ones
                 j = j + 1
 
-        print("there are {} empty masks (healthy brains) out of 3064 dataset total samples".format(j))
+        print(
+            f"there are {j} empty masks (healthy brains) out of 3064 dataset total samples"
+        )
+
 
 
         # incase of the presence of healthy brains, set num_classes = 4
-        if j >= 1:
-            num_class = 4
-
-        # if not then set it to 3 labels
-        else:
-            num_class = 3
-
+        num_class = 4 if j >= 1 else 3
         return j, num_class
 
 
@@ -62,27 +59,35 @@ class Helper(object):
 
         """# Function to save the results values in text file
         """
-    
+
         print("Saving Results value in a .md file")
 
-        filename = (main_path + '/Results/{}_{}_{}b_{}a_{}e.md'.format(m_name[1], orient, batch, aug, epochs))
+        filename = f'{main_path}/Results/{m_name[1]}_{orient}_{batch}b_{aug}a_{epochs}e.md'
+
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         if type == "Train":
             with open(filename, "a") as output:
-                output.write("\n" + "Epoch is {}, ".format(i+1) + "total loops {}".format(b+1) + "batch size {}".format(batch) + "\n")
-                output.write("{}_acc = ".format(type) + str(value1) + "\n")
-                output.write("last_{}_loss = ".format(type) + str(value2))
+                output.write(
+                    "\n"
+                    + f"Epoch is {i + 1}, "
+                    + f"total loops {b + 1}"
+                    + f"batch size {batch}"
+                    + "\n"
+                )
+
+                output.write(f"{type}_acc = {str(value1)}" + "\n")
+                output.write(f"last_{type}_loss = {str(value2)}")
 
         elif type == "CR & JI": 
             with open(filename, "a") as output:
                 output.write("\n" + "Classification report is : " + "\n" + str(value1) + "\n")
-                output.write("Jaccard index = " + str(value2))
+                output.write(f"Jaccard index = {str(value2)}")
 
         else: 
             with open(filename, "a") as output:
-                output.write("\n" + "{}_acc = ".format(type) + str(value1) + "\n")
-                output.write("last_{}_loss = ".format(type) + str(value2))
+                output.write("\n" + f"{type}_acc = " + str(value1) + "\n")
+                output.write(f"last_{type}_loss = {str(value2)}")
 
 
 
