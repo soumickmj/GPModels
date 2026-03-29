@@ -2,8 +2,8 @@
 
 Official code for the paper:
 
-**"Weakly-supervised segmentation using inherently-explainable classification models and their application to brain tumour classification"**
-Published in *Neurocomputing* (2026) · DOI: [10.1016/j.neucom.2025.133460](https://doi.org/10.1016/j.neucom.2025.133460) · Preprint: [arXiv:2206.05148](https://arxiv.org/abs/2206.05148)
+**"Weakly-supervised segmentation using inherently-explainable classification models and their application to brain tumour      classification"**
+Published in *Neurocomputing* (2026) · DOI: [10.1016/j.neucom.2026.133460](https://doi.org/10.1016/j.neucom.2026.133460) · Preprint: [arXiv:2206.05148](https://arxiv.org/abs/2206.05148)
 
 This work was first presented at **ISMRM-ESMRMB 2022**, London.
 Abstract on ResearchGate: [Learning to segment brain tumours using an explainable classifier](https://www.researchgate.net/publication/358357555_Learning_to_segment_brain_tumours_using_an_explainable_classifier)
@@ -164,7 +164,7 @@ If you use this approach in your research or use code from this repository, plea
 
 ### Journal paper (Neurocomputing 2026)
 
-> Soumick Chatterjee, Hadya Yassin, Florian Dubost, Andreas Nürnberger, Oliver Speck: *Weakly-supervised segmentation using inherently-explainable classification models and their application to brain tumour classification.* Neurocomputing, 2026. DOI: [10.1016/j.neucom.2025.133460](https://doi.org/10.1016/j.neucom.2025.133460)
+> Soumick Chatterjee, Hadya Yassin, Florian Dubost, Andreas Nürnberger, Oliver Speck: *Weakly-supervised segmentation using inherently-explainable classification models and their application to brain tumour classification.* Neurocomputing, 2026. DOI: [10.1016/j.neucom.2026.133460](https://doi.org/10.1016/j.neucom.2026.133460)
 
 ```bibtex
 @article{chatterjee2026weakly,
