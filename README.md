@@ -5,8 +5,7 @@ Official code for the paper:
 **"Weakly-supervised segmentation using inherently-explainable classification models and their application to brain tumour      classification"**
 Published in *Neurocomputing* (2026) · DOI: [10.1016/j.neucom.2026.133460](https://doi.org/10.1016/j.neucom.2026.133460) · Preprint: [arXiv:2206.05148](https://arxiv.org/abs/2206.05148)
 
-The initial idea was first presented as a short abstract at **ISMRM-ESMRMB 2022**, London, based on limited experiments on a small dataset.
-This journal paper is a full extension of that work — with new architectures, comprehensive experiments on the full BraTS 2020 dataset, and thorough evaluation.
+The initial idea as a proof-of-concept was first presented as an abstract at **ISMRM-ESMRMB 2022**, London. This journal paper is a full extension of that work - including comprehensive experiments on the full BraTS 2020 dataset, and thorough evaluation.
 Abstract on ResearchGate: [Learning to segment brain tumours using an explainable classifier](https://www.researchgate.net/publication/358357555_Learning_to_segment_brain_tumours_using_an_explainable_classifier)
 
 ---
@@ -153,19 +152,19 @@ with torch.no_grad():
 
 The raw heatmap from the model is a continuous activation map. To obtain a discrete segmentation mask, apply a threshold to convert it to a binary mask. The full post-processing pipeline is implemented in [`Local_Post-Processing.py`](Local_Post-Processing.py).
 
-### Step 1 — Obtain the heatmap
+### Step 1 - Obtain the heatmap
 
 ```python
 model.eval()
 with torch.no_grad():
     logits, heatmap = model(x)          # x: (B, 4, 240, 240)
     pred_class = logits.argmax(dim=1)   # 0=Healthy, 1=LGG, 2=HGG
-    # heatmap: (B, 3, H, W) — one activation map per class
+    # heatmap: (B, 3, H, W) - one activation map per class
     # Select the channel corresponding to the predicted class:
     seg_map = heatmap[torch.arange(len(pred_class)), pred_class]  # (B, H, W)
 ```
 
-### Step 2 — Post-process to binary mask
+### Step 2 - Post-process to binary mask
 
 ```python
 from skimage.filters import threshold_multiotsu
@@ -214,7 +213,7 @@ If you use this approach in your research or use code from this repository, plea
 
 ### Conference abstract (ISMRM-ESMRMB 2022)
 
-The ISMRM abstract presented the **original proof-of-concept** on a small dataset with limited experiments. The journal paper above is the full extension of this work.
+The ISMRM abstract presented the **original proof-of-concept**. The journal paper above is the full extension of this work.
 
 > Soumick Chatterjee, Hadya Yassin, Florian Dubost, Andreas Nürnberger, Oliver Speck: *Learning to segment brain tumours using an explainable classifier.* ISMRM-ESMRMB 2022, London, May 2022. [ResearchGate](https://www.researchgate.net/publication/358357555_Learning_to_segment_brain_tumours_using_an_explainable_classifier)
 
