@@ -1,10 +1,31 @@
+# Core deep learning
+torch
+torchvision
+pytorch-lightning
+
+# Data / I/O
 numpy
-pandas
-matplotlib
-scikit-learn
+nibabel
+torchio
+Pillow
+SimpleITK
+
+# Image processing
 scikit-image
+
+# Machine learning utilities
+scikit-learn
+
+# Visualisation & analysis
+matplotlib
+pandas
 seaborn
+
+# Training utilities
+wandb
 nvgpu
-git+https://github.com/tueimage/gryds
-git+https://github.com/albumentations-team/albumentations
-imgaug
+prettytable
+
+# Custom / from source
+git+https://github.com/soumickmj/pytorch-complex  # torchcomplex
+git+https://github.com/soumickmj/tricorder        # tricorder
