@@ -5,7 +5,8 @@ Official code for the paper:
 **"Weakly-supervised segmentation using inherently-explainable classification models and their application to brain tumour      classification"**
 Published in *Neurocomputing* (2026) · DOI: [10.1016/j.neucom.2026.133460](https://doi.org/10.1016/j.neucom.2026.133460) · Preprint: [arXiv:2206.05148](https://arxiv.org/abs/2206.05148)
 
-This work was first presented at **ISMRM-ESMRMB 2022**, London.
+The initial idea was first presented as a short abstract at **ISMRM-ESMRMB 2022**, London, based on limited experiments on a small dataset.
+This journal paper is a full extension of that work — with new architectures, comprehensive experiments on the full BraTS 2020 dataset, and thorough evaluation.
 Abstract on ResearchGate: [Learning to segment brain tumours using an explainable classifier](https://www.researchgate.net/publication/358357555_Learning_to_segment_brain_tumours_using_an_explainable_classifier)
 
 ---
@@ -16,7 +17,7 @@ GPModels are inherently-explainable convolutional networks for simultaneous brai
 
 - **Task:** Multi-class classification (Healthy / LGG / HGG) with weakly-supervised segmentation via per-pixel heatmaps
 - **Dataset:** [BraTS 2020](https://www.med.upenn.edu/cbica/brats2020/)
-- **Input:** 2-D axial slices — 4 channels in order **T1 · T2 · T1CE · FLAIR** (indices 0–3), 240 × 240 px, max-normalized per slice
+- **Input:** 2-D axial slices - 4 channels in order **T1 · T2 · T1CE · FLAIR** (indices 0-3), 240 × 240 px, max-normalised per slice
 - **Output classes:** 0 = Healthy, 1 = LGG, 2 = HGG
 
 Three model families are provided:
@@ -24,7 +25,7 @@ Three model families are provided:
 | Model | Description |
 |---|---|
 | **GPUNet** | U-Net with global max-pooling classifier head |
-| **GPReconResNet** | ResNet-based encoder–decoder with reconstruction path |
+| **GPReconResNet** | ReconResNet-based encoder-decoder with reconstruction path |
 | **GPShuffleUNet** | U-Net with pixel-shuffle (sub-pixel convolution) upsampling |
 
 ---
@@ -35,7 +36,7 @@ A collection of pre-trained weights is available on the Hugging Face Hub:
 
 **Collection:** [huggingface.co/collections/soumickmj/gp-models](https://huggingface.co/collections/soumickmj/gp-models)
 
-### 4-channel models (T1 · T2 · T1CE · FLAIR) — *from the paper*
+### 4-channel models (T1 · T2 · T1CE · FLAIR) - *from the paper*
 
 | Model | Hub repository |
 |---|---|
@@ -43,7 +44,7 @@ A collection of pre-trained weights is available on the Hugging Face Hub:
 | GPReconResNet | [soumickmj/GPReconResNet_BraTS2020_T1T2T1ceFlair_Axial](https://huggingface.co/soumickmj/GPReconResNet_BraTS2020_T1T2T1ceFlair_Axial) |
 | GPShuffleUNet | [soumickmj/GPShuffleUNet_BraTS2020_T1T2T1ceFlair_Axial](https://huggingface.co/soumickmj/GPShuffleUNet_BraTS2020_T1T2T1ceFlair_Axial) |
 
-### Single-contrast models (T1CE only) — *not part of the paper*
+### Single-contrast models (T1CE only) - *not part of the paper*
 
 | Model | Hub repository |
 |---|---|
@@ -73,7 +74,7 @@ dataset/
     Brats_PreprocessingV2.py   # converts raw NIfTI → per-slice pickles
 ```
 
-The loader (`utilities/load.py`) stacks contrasts as `(T1, T2, T1CE, FLAIR)` → tensor shape `(4, H, W)`. Slices are max-normalized per channel before being passed to the model.
+The loader (`utilities/load.py`) stacks contrasts as `(T1, T2, T1CE, FLAIR)` → tensor shape `(4, H, W)`. Slices are max-normalised per channel before being passed to the model.
 
 ---
 
@@ -131,28 +132,62 @@ def load_hf_weights(model, repo_id: str, filename: str = "pytorch_model.bin"):
     model.load_state_dict(cleaned)
     return model
 
-# Example — GPShuffleUNet (4-channel)
+# Example - GPShuffleUNet (4-channel)
 net = GP_ShuffleUNet(d=2, in_ch=4, num_features=64, n_levels=3, out_ch=3)
 net = load_hf_weights(net, "soumickmj/GPShuffleUNet_BraTS2020_T1T2T1ceFlair_Axial")
 net.eval()
 
 # Classification + heatmap inference
-x = torch.randn(1, 4, 240, 240)   # (B, 4, H, W) — max-normalised axial slice
+x = torch.randn(1, 4, 240, 240)   # (B, 4, H, W) - max-normalised axial slice
 with torch.no_grad():
     logits, heatmap = net(x)       # eval mode returns both
     pred = logits.argmax(dim=1)    # 0=Healthy, 1=LGG, 2=HGG
-    # heatmap: (B, 3, H, W) — one channel per class
+    # heatmap: (B, 3, H, W) - one channel per class
 ```
 
 > When the model is in **train mode** it returns only logits `(B, 3)`. Switch to `model.eval()` to obtain the `(logits, heatmap)` tuple.
 
 ---
 
-## Contacts
+## Segmentation Pipeline: Heatmap → Binary Mask
 
-Please feel free to contact me for any questions or feedback:
+The raw heatmap from the model is a continuous activation map. To obtain a discrete segmentation mask, apply a threshold to convert it to a binary mask. The full post-processing pipeline is implemented in [`Local_Post-Processing.py`](Local_Post-Processing.py).
 
-[soumick.chatterjee@ovgu.de](mailto:soumick.chatterjee@ovgu.de) · [contact@soumick.com](mailto:contact@soumick.com)
+### Step 1 — Obtain the heatmap
+
+```python
+model.eval()
+with torch.no_grad():
+    logits, heatmap = model(x)          # x: (B, 4, 240, 240)
+    pred_class = logits.argmax(dim=1)   # 0=Healthy, 1=LGG, 2=HGG
+    # heatmap: (B, 3, H, W) — one activation map per class
+    # Select the channel corresponding to the predicted class:
+    seg_map = heatmap[torch.arange(len(pred_class)), pred_class]  # (B, H, W)
+```
+
+### Step 2 — Post-process to binary mask
+
+```python
+from skimage.filters import threshold_multiotsu
+import numpy as np
+
+def heatmap_to_mask(seg_map_np: np.ndarray, offset: float = 0.5) -> np.ndarray:
+    """
+    Convert a continuous heatmap (H, W) to a binary segmentation mask.
+    Uses multi-Otsu thresholding with an adjustable offset.
+    See Local_Post-Processing.py for full evaluation and offset selection.
+    """
+    thresholds = threshold_multiotsu(seg_map_np)
+    binary = seg_map_np > (thresholds[-1] - offset)
+    return binary.astype(np.uint8)
+
+seg_np = seg_map[0].cpu().numpy()     # (H, W)
+binary_mask = heatmap_to_mask(seg_np)
+```
+
+### Threshold selection and full evaluation
+
+`Local_Post-Processing.py` performs a systematic sweep over threshold offset values (default range `[0.4, 1.0]`), computes Dice and IoU scores against ground-truth masks, and saves visualisations as NIfTI files for inspection. Run it (after adjusting the `main_path`, `network`, `Dataset`, and `orient` variables at the top of the file) to find the best offset for your data.
 
 ---
 
@@ -178,6 +213,8 @@ If you use this approach in your research or use code from this repository, plea
 ```
 
 ### Conference abstract (ISMRM-ESMRMB 2022)
+
+The ISMRM abstract presented the **original proof-of-concept** on a small dataset with limited experiments. The journal paper above is the full extension of this work.
 
 > Soumick Chatterjee, Hadya Yassin, Florian Dubost, Andreas Nürnberger, Oliver Speck: *Learning to segment brain tumours using an explainable classifier.* ISMRM-ESMRMB 2022, London, May 2022. [ResearchGate](https://www.researchgate.net/publication/358357555_Learning_to_segment_brain_tumours_using_an_explainable_classifier)
 
